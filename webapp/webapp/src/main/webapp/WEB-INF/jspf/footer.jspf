@@ -1,0 +1,54 @@
+<%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
+<%@ page import="com.volunteerstar.pojo.User" %>
+<%
+  User footerUser = (User) session.getAttribute("loginUser");
+  String footerRole = footerUser == null ? "" : footerUser.getRole();
+%>
+<footer class="footer">
+  <div class="container" style="padding:64px 0 28px;">
+    <div class="footer__grid">
+      <div>
+        <div class="brand" style="margin-bottom:16px;">
+          <span class="brand__mark"></span>
+          <span class="brand__name">志愿星河</span>
+        </div>
+        <p class="footer__copy">基于 Servlet + MyBatis 的城市公益活动报名与志愿时长管理平台。五个人的团队，一座城市的温度。</p>
+        <a class="text-primary" href="${pageContext.request.contextPath}/activities.jsp" style="display:inline-block;margin-top:12px;">了解更多 →</a>
+      </div>
+      <div>
+        <h4 class="footer__title">快速链接</h4>
+        <div class="footer__copy" style="display:grid;gap:10px;margin-top:18px;">
+          <a href="${pageContext.request.contextPath}/index.jsp">首页</a>
+          <a href="${pageContext.request.contextPath}/activities.jsp">活动中心</a>
+          <a href="${pageContext.request.contextPath}/heatmap.jsp">热力地图</a>
+          <a href="${pageContext.request.contextPath}/points-mall.jsp">积分商城</a>
+          <a href="${pageContext.request.contextPath}/dashboard.jsp">个人中心</a>
+          <% if ("1".equals(footerRole)) { %>
+            <a href="${pageContext.request.contextPath}/admin.jsp">后台管理</a>
+          <% } %>
+        </div>
+      </div>
+      <div>
+        <h4 class="footer__title">联系我们</h4>
+        <div class="footer__copy" style="display:grid;gap:10px;margin-top:18px;">
+          <span>sui_chengguo@nxu.edu.cn</span>
+          <span>github.com/volunteer-star</span>
+          <span>答辩时间：2025年7月</span>
+        </div>
+      </div>
+      <div>
+        <h4 class="footer__title">项目信息</h4>
+        <div class="footer__copy" style="display:grid;gap:8px;margin-top:18px;">
+          <span>宁夏大学 · 求是书院</span>
+          <span>信息工程学院</span>
+          <span>软件工程 24级</span>
+          <span style="font-size:12px;color:rgba(255,255,255,.42);margin-top:8px;">Servlet + MyBatis + MySQL</span>
+        </div>
+      </div>
+    </div>
+    <div class="footer__bottom">
+      <p class="footer__copy" style="font-size:12px;">© 2025 志愿星河 毕业设计项目 · Powered by Servlet + MyBatis</p>
+      <button class="icon-button" type="button" onclick="window.scrollTo({ top: 0, behavior: 'smooth' })" aria-label="返回顶部">↑</button>
+    </div>
+  </div>
+</footer>

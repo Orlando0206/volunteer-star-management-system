@@ -1,0 +1,734 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.volunteerstar.mapper.AdminMapper">
+
+    <resultMap id="ActivityResultMap" type="Activity">
+        <id column="id" property="id"/>
+        <result column="title" property="title"/>
+        <result column="category" property="category"/>
+        <result column="category_color" property="categoryColor"/>
+        <result column="description" property="description"/>
+        <result column="location" property="location"/>
+        <result column="start_time" property="startTime"/>
+        <result column="end_time" property="endTime"/>
+        <result column="capacity" property="capacity"/>
+        <result column="enrolled" property="enrolled"/>
+        <result column="status" property="status"/>
+        <result column="image" property="image"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="admin_id" property="adminId"/>
+    </resultMap>
+
+    <resultMap id="RegistrationResultMap" type="Registration">
+        <id column="id" property="id"/>
+        <result column="activity_id" property="activityId"/>
+        <result column="user_id" property="userId"/>
+        <result column="status" property="status"/>
+        <result column="register_time" property="registerTime"/>
+        <result column="check_in_time" property="checkInTime"/>
+        <result column="check_out_time" property="checkOutTime"/>
+        <result column="hours" property="hours"/>
+        <result column="remark" property="remark"/>
+        <result column="user_name" property="userName"/>
+        <result column="user_phone" property="userPhone"/>
+        <result column="activity_title" property="activityTitle"/>
+        <result column="activity_location" property="activityLocation"/>
+    </resultMap>
+
+    <!-- ==================== 活动管理SQL：使用 volunteer_activity ==================== -->
+
+    <!-- 后台管理员查询：不做默认过滤，可以显示包括“已取消”在内的所有活动 -->
+    <select id="selectActivities" resultMap="ActivityResultMap">
+        SELECT
+        a.id,
+        a.title,
+        a.activity_type AS category,
+        COALESCE(t.color_code, '#27AE60') AS category_color,
+        a.description,
+        a.address AS location,
+        a.start_time,
+        a.end_time,
+        a.recruit_count AS capacity,
+        a.applied_count AS enrolled,
+        CASE a.activity_status_id
+        WHEN 1 THEN 0
+        WHEN 2 THEN 2
+        WHEN 4 THEN 3
+        ELSE 0
+        END AS status,
+        a.activity_cover_url AS image,
+        a.create_time,
+        a.update_time,
+        a.publish_user_id AS admin_id
+        FROM volunteer_activity a
+        LEFT JOIN volunteer_tag t
+        ON t.tag_name = a.activity_type
+        AND t.tag_type = 'activity_type'
+        <where>
+
+            <if test="keyword != null and keyword != ''">
+                AND (
+                a.title LIKE CONCAT('%', #{keyword}, '%')
+                OR a.address LIKE CONCAT('%', #{keyword}, '%')
+                OR a.activity_type LIKE CONCAT('%', #{keyword}, '%')
+                )
+            </if>
+            <if test="status != null">
+                AND a.activity_status_id =
+                CASE #{status}
+                WHEN 0 THEN 1
+                WHEN 2 THEN 2
+                WHEN 3 THEN 4
+                ELSE 1
+                END
+            </if>
+        </where>
+        ORDER BY a.publish_time DESC, a.create_time DESC
+    </select>
+
+    <!-- 用户端活动中心查询：默认排除已被管理员“删除/取消”的活动（activity_status_id = 4） -->
+    <select id="selectUserActivities" resultMap="ActivityResultMap">
+        SELECT
+        a.id,
+        a.title,
+        a.activity_type AS category,
+        COALESCE(t.color_code, '#27AE60') AS category_color,
+        a.description,
+        a.address AS location,
+        a.start_time,
+        a.end_time,
+        a.recruit_count AS capacity,
+        a.applied_count AS enrolled,
+        CASE a.activity_status_id
+        WHEN 1 THEN 0
+        WHEN 2 THEN 2
+        WHEN 4 THEN 3
+        ELSE 0
+        END AS status,
+        a.activity_cover_url AS image,
+        a.create_time,
+        a.update_time,
+        a.publish_user_id AS admin_id
+        FROM volunteer_activity a
+        LEFT JOIN volunteer_tag t
+        ON t.tag_name = a.activity_type
+        AND t.tag_type = 'activity_type'
+        <where>
+            AND a.activity_status_id != 4
+            <if test="keyword != null and keyword != ''">
+                AND (
+                a.title LIKE CONCAT('%', #{keyword}, '%')
+                OR a.address LIKE CONCAT('%', #{keyword}, '%')
+                OR a.activity_type LIKE CONCAT('%', #{keyword}, '%')
+                )
+            </if>
+        </where>
+        ORDER BY a.publish_time DESC, a.create_time DESC
+    </select>
+
+    <select id="selectActivityById" resultMap="ActivityResultMap">
+        SELECT
+            a.id,
+            a.title,
+            a.activity_type AS category,
+            COALESCE(t.color_code, '#27AE60') AS category_color,
+            a.description,
+            a.address AS location,
+            a.start_time,
+            a.end_time,
+            a.recruit_count AS capacity,
+            a.applied_count AS enrolled,
+            CASE a.activity_status_id
+                WHEN 1 THEN 0
+                WHEN 2 THEN 2
+                WHEN 4 THEN 3
+                ELSE 0
+                END AS status,
+            a.activity_cover_url AS image,
+            a.create_time,
+            a.update_time,
+            a.publish_user_id AS admin_id
+        FROM volunteer_activity a
+                 LEFT JOIN volunteer_tag t
+                           ON t.tag_name = a.activity_type
+                               AND t.tag_type = 'activity_type'
+        WHERE a.id = #{id}
+    </select>
+
+    <insert id="insertActivity" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO volunteer_activity (
+            organization_id,
+            region_id,
+            activity_status_id,
+            publish_user_id,
+            title,
+            activity_type,
+            activity_cover_url,
+            description,
+            address,
+            start_time,
+            end_time,
+            sign_in_start_time,
+            sign_out_end_time,
+            recruit_count,
+            applied_count,
+            favorite_count,
+            share_count,
+            service_hour,
+            heat_value,
+            publish_time
+        )
+        VALUES (
+                   1,
+                   2,
+                   CASE #{status}
+                       WHEN 0 THEN 1
+                       WHEN 2 THEN 2
+                       WHEN 3 THEN 4
+                       ELSE 1
+                       END,
+                   #{adminId},
+                   #{title},
+                   #{category},
+                   #{image},
+                   #{description},
+                   #{location},
+                   #{startTime},
+                   #{endTime},
+                   #{startTime},
+                   #{endTime},
+                   #{capacity},
+                   0,
+                   0,
+                   0,
+                   3.00,
+                   0,
+                   NOW()
+               )
+    </insert>
+
+    <update id="updateActivity">
+        UPDATE volunteer_activity
+        <set>
+            <if test="title != null">title = #{title},</if>
+            <if test="category != null">activity_type = #{category},</if>
+            <if test="description != null">description = #{description},</if>
+            <if test="location != null">address = #{location},</if>
+            <if test="startTime != null">start_time = #{startTime}, sign_in_start_time = #{startTime},</if>
+            <if test="endTime != null">end_time = #{endTime}, sign_out_end_time = #{endTime},</if>
+            <if test="capacity != null">recruit_count = #{capacity},</if>
+            <if test="status != null">
+                activity_status_id =
+                CASE #{status}
+                WHEN 0 THEN 1
+                WHEN 2 THEN 2
+                WHEN 3 THEN 4
+                ELSE 1
+                END,
+            </if>
+            <if test="image != null">activity_cover_url = #{image},</if>
+            update_time = NOW()
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <!-- 删除活动：这里使用软删除，把活动状态改为已取消，避免外键删除失败 -->
+    <delete id="deleteActivity">
+        UPDATE volunteer_activity
+        SET activity_status_id = 4,
+            update_time = NOW()
+        WHERE id = #{id}
+    </delete>
+
+    <update id="updateEnrolledCount">
+        UPDATE volunteer_activity
+        SET applied_count = GREATEST(applied_count + #{delta}, 0)
+        WHERE id = #{activityId}
+    </update>
+
+    <!-- ==================== 报名审核SQL：使用 volunteer_activity_enrollment ==================== -->
+
+    <select id="selectRegistrations" resultMap="RegistrationResultMap">
+        SELECT
+        e.id,
+        e.activity_id,
+        e.user_id,
+        CAST(e.enroll_status AS UNSIGNED) AS status,
+        e.enroll_time AS register_time,
+        NULL AS check_in_time,
+        NULL AS check_out_time,
+        0 AS hours,
+        COALESCE(e.audit_remark, e.enroll_remark) AS remark,
+        u.username AS user_name,
+        u.phone AS user_phone,
+        a.title AS activity_title,
+        a.address AS activity_location
+        FROM volunteer_activity_enrollment e
+        LEFT JOIN volunteer_user u ON e.user_id = u.id
+        LEFT JOIN volunteer_activity a ON e.activity_id = a.id
+        <where>
+            <if test="activityId != null">
+                AND e.activity_id = #{activityId}
+            </if>
+            <if test="status != null">
+                AND e.enroll_status = #{status}
+            </if>
+            <if test="keyword != null and keyword != ''">
+                AND (
+                u.username LIKE CONCAT('%', #{keyword}, '%')
+                OR u.phone LIKE CONCAT('%', #{keyword}, '%')
+                OR a.title LIKE CONCAT('%', #{keyword}, '%')
+                )
+            </if>
+        </where>
+        ORDER BY e.enroll_time DESC
+    </select>
+
+    <select id="selectRegistrationById" resultMap="RegistrationResultMap">
+        SELECT
+            e.id,
+            e.activity_id,
+            e.user_id,
+            CAST(e.enroll_status AS UNSIGNED) AS status,
+            e.enroll_time AS register_time,
+            NULL AS check_in_time,
+            NULL AS check_out_time,
+            0 AS hours,
+            COALESCE(e.audit_remark, e.enroll_remark) AS remark,
+            u.nickname AS user_name,
+            u.phone AS user_phone,
+            a.title AS activity_title,
+            a.address AS activity_location
+        FROM volunteer_activity_enrollment e
+                 LEFT JOIN volunteer_user u ON e.user_id = u.id
+                 LEFT JOIN volunteer_activity a ON e.activity_id = a.id
+        WHERE e.id = #{id}
+    </select>
+
+    <update id="updateRegistrationStatus">
+        UPDATE volunteer_activity_enrollment
+        SET enroll_status = #{status},
+            audit_remark = #{remark},
+            audit_time = NOW(),
+            update_time = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <!-- ==================== 签到签退管理：使用 volunteer_activity_sign 表 ==================== -->
+
+    <!-- 查询报名记录对应的签到签退信息 -->
+    <select id="selectActivitySignByEnrollmentId" resultType="com.volunteerstar.pojo.ActivitySign">
+        SELECT
+            s.id,
+            s.activity_enrollment_id AS activityEnrollmentId,
+            s.sign_in_time AS signInTime,
+            s.sign_out_time AS signOutTime,
+            CAST(s.sign_status AS UNSIGNED) AS signStatus,
+            s.service_hour_actual AS serviceHourActual,
+            s.confirm_user_id AS confirmUserId,
+            s.qr_code_token AS qrCodeToken,
+            s.create_time AS createTime,
+            s.update_time AS updateTime,
+            u.nickname AS userName,
+            u.phone AS userPhone,
+            a.title AS activityTitle,
+            a.address AS activityLocation,
+            e.user_id AS userId,
+            e.activity_id AS activityId
+        FROM volunteer_activity_sign s
+        LEFT JOIN volunteer_activity_enrollment e ON s.activity_enrollment_id = e.id
+        LEFT JOIN volunteer_user u ON e.user_id = u.id
+        LEFT JOIN volunteer_activity a ON e.activity_id = a.id
+        WHERE s.activity_enrollment_id = #{enrollmentId}
+    </select>
+
+    <!-- 查询签到签退列表（用于管理后台） -->
+    <select id="selectActivitySignList" resultType="com.volunteerstar.pojo.ActivitySign">
+        SELECT
+            s.id,
+            s.activity_enrollment_id AS activityEnrollmentId,
+            s.sign_in_time AS signInTime,
+            s.sign_out_time AS signOutTime,
+            CAST(s.sign_status AS UNSIGNED) AS signStatus,
+            s.service_hour_actual AS serviceHourActual,
+            s.confirm_user_id AS confirmUserId,
+            s.qr_code_token AS qrCodeToken,
+            s.create_time AS createTime,
+            s.update_time AS updateTime,
+            u.nickname AS userName,
+            u.phone AS userPhone,
+            a.title AS activityTitle,
+            a.address AS activityLocation,
+            e.user_id AS userId,
+            e.activity_id AS activityId
+        FROM volunteer_activity_sign s
+        LEFT JOIN volunteer_activity_enrollment e ON s.activity_enrollment_id = e.id
+        LEFT JOIN volunteer_user u ON e.user_id = u.id
+        LEFT JOIN volunteer_activity a ON e.activity_id = a.id
+        WHERE e.enroll_status IN ('1', '4')
+        <if test="signStatus != null">
+            AND s.sign_status = #{signStatus}
+        </if>
+        ORDER BY s.sign_in_time DESC, s.create_time DESC
+    </select>
+
+    <!-- 创建签到记录（报名审核通过后自动创建） -->
+    <insert id="insertActivitySign">
+        INSERT INTO volunteer_activity_sign (
+            activity_enrollment_id,
+            sign_status,
+            service_hour_actual,
+            create_time,
+            update_time
+        )
+        VALUES (
+            #{enrollmentId},
+            '0',
+            0,
+            NOW(),
+            NOW()
+        )
+    </insert>
+
+    <!-- 签到：更新签到时间和状态 -->
+    <update id="updateSignIn">
+        UPDATE volunteer_activity_sign
+        SET sign_in_time = NOW(),
+            sign_status = '1',
+            update_time = NOW()
+        WHERE activity_enrollment_id = #{enrollmentId}
+          AND sign_status = '0'
+    </update>
+
+    <!-- 签退：更新签退时间、状态和实际时长 -->
+    <update id="updateSignOut">
+        UPDATE volunteer_activity_sign
+        SET sign_out_time = NOW(),
+            sign_status = '2',
+            service_hour_actual = #{hours},
+            confirm_user_id = #{adminId},
+            update_time = NOW()
+        WHERE activity_enrollment_id = #{enrollmentId}
+          AND sign_status = '1'
+    </update>
+
+    <!-- 更新报名状态为已完成 -->
+    <update id="updateEnrollmentCompleted">
+        UPDATE volunteer_activity_enrollment
+        SET enroll_status = '4',
+            audit_remark = #{remark},
+            update_time = NOW()
+        WHERE id = #{enrollmentId}
+    </update>
+
+    <update id="batchUpdateStatus">
+        UPDATE volunteer_activity_enrollment
+        SET enroll_status = #{status},
+        audit_time = NOW(),
+        update_time = NOW()
+        WHERE id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </update>
+
+    <!-- ==================== 统计SQL ==================== -->
+
+    <select id="countActivityByStatus" resultType="int">
+        SELECT COUNT(*)
+        FROM volunteer_activity
+        WHERE activity_status_id =
+              CASE #{status}
+                  WHEN 0 THEN 1
+                  WHEN 2 THEN 2
+                  WHEN 3 THEN 4
+                  ELSE 1
+                  END
+    </select>
+
+    <select id="countRegistrationByStatus" resultType="int">
+        SELECT COUNT(*)
+        FROM volunteer_activity_enrollment
+        WHERE enroll_status = #{status}
+    </select>
+
+    <select id="countTodayCheckIn" resultType="int">
+        SELECT COUNT(*)
+        FROM volunteer_activity_sign
+        WHERE sign_in_time IS NOT NULL
+          AND DATE(sign_in_time) = CURDATE()
+    </select>
+
+    <select id="selectLatestSnapshotDate" resultType="string">
+        SELECT DATE_FORMAT(MAX(snapshot_date), '%Y-%m-%d')
+        FROM volunteer_home_stat_snapshot
+    </select>
+
+    <select id="selectLatestSummaryStats" resultType="map">
+        SELECT
+            stat_code AS code,
+            stat_label AS label,
+            stat_value AS value,
+            stat_suffix AS suffix,
+            stat_change_text AS changeText,
+            color_code AS color
+        FROM volunteer_home_stat_snapshot
+        WHERE snapshot_date = (SELECT MAX(snapshot_date) FROM volunteer_home_stat_snapshot)
+        ORDER BY FIELD(stat_code, 'total_hours', 'total_users', 'total_activities', 'total_communities'), id
+    </select>
+
+    <select id="selectDashboardOperations" resultType="map">
+        SELECT
+            (
+                SELECT COUNT(*)
+                FROM volunteer_activity a
+                JOIN volunteer_activity_status s ON s.id = a.activity_status_id
+                WHERE s.status_code = 'recruiting'
+            ) AS recruitingActivities,
+            COALESCE((
+                SELECT ROUND(SUM(a.applied_count) * 100.0 / NULLIF(SUM(a.recruit_count), 0), 1)
+                FROM volunteer_activity a
+                JOIN volunteer_activity_status s ON s.id = a.activity_status_id
+                WHERE s.status_code = 'recruiting'
+            ), 0) AS recruitingFillRate,
+            (
+                SELECT COUNT(*)
+                FROM volunteer_activity_enrollment
+                WHERE enroll_status = '0'
+            ) AS pendingReviews,
+            (
+                SELECT COUNT(*)
+                FROM volunteer_activity_sign
+                WHERE sign_in_time IS NOT NULL
+                  AND DATE(sign_in_time) = CURDATE()
+            ) AS todayCheckIns
+    </select>
+
+    <select id="selectMonthlyStats" resultType="map">
+        SELECT
+            stat_month AS month,
+            activity_count AS activityCount,
+            participant_count AS participantCount,
+            total_hours AS totalHours
+        FROM volunteer_monthly_stat_snapshot
+        ORDER BY id
+    </select>
+
+    <select id="selectLatestCategoryStats" resultType="map">
+        SELECT
+            t.tag_name AS name,
+            s.activity_count AS activityCount,
+            CAST(REPLACE(s.percent_text, '%', '') AS UNSIGNED) AS percentage,
+            t.color_code AS color
+        FROM volunteer_category_stat_snapshot s
+        JOIN volunteer_tag t ON t.id = s.tag_id
+        WHERE s.snapshot_date = (SELECT MAX(snapshot_date) FROM volunteer_category_stat_snapshot)
+        ORDER BY s.activity_count DESC, s.id
+    </select>
+
+    <select id="selectLatestRegionStats" resultType="map">
+        SELECT
+            r.region_name AS name,
+            s.activity_count AS activityCount,
+            s.participant_count AS participantCount,
+            s.total_hours AS totalHours,
+            s.heat_score AS heatScore
+        FROM volunteer_region_stat_snapshot s
+        JOIN volunteer_region r ON r.id = s.region_id
+        WHERE s.snapshot_date = (SELECT MAX(snapshot_date) FROM volunteer_region_stat_snapshot)
+        ORDER BY s.participant_count DESC, s.id
+    </select>
+
+    <!-- ==================== 用户端活动浏览/报名SQL ==================== -->
+
+    <select id="selectUserRegistration" resultMap="RegistrationResultMap">
+        SELECT
+            e.id,
+            e.activity_id,
+            e.user_id,
+            CAST(e.enroll_status AS UNSIGNED) AS status,
+            e.enroll_time AS register_time,
+            NULL AS check_in_time,
+            NULL AS check_out_time,
+            0 AS hours,
+            COALESCE(e.audit_remark, e.enroll_remark) AS remark,
+            u.nickname AS user_name,
+            u.phone AS user_phone,
+            a.title AS activity_title,
+            a.address AS activity_location
+        FROM volunteer_activity_enrollment e
+                 LEFT JOIN volunteer_user u ON e.user_id = u.id
+                 LEFT JOIN volunteer_activity a ON e.activity_id = a.id
+        WHERE e.activity_id = #{activityId}
+          AND e.user_id = #{userId}
+        ORDER BY e.enroll_time DESC
+            LIMIT 1
+    </select>
+
+    <insert id="insertRegistration">
+        INSERT INTO volunteer_activity_enrollment (
+            activity_id,
+            user_id,
+            enroll_status,
+            enroll_remark,
+            enroll_time
+        )
+        VALUES (
+                   #{activityId},
+                   #{userId},
+                   '0',
+                   #{remark},
+                   NOW()
+               )
+            ON DUPLICATE KEY UPDATE
+                                 enroll_status = '0',
+                                 enroll_remark = #{remark},
+                                 enroll_time = NOW(),
+                                 cancel_time = NULL,
+                                 update_time = NOW()
+    </insert>
+
+    <update id="cancelUserRegistration">
+        UPDATE volunteer_activity_enrollment
+        SET enroll_status = '3',
+            cancel_time = NOW(),
+            update_time = NOW()
+        WHERE activity_id = #{activityId}
+          AND user_id = #{userId}
+          AND enroll_status IN ('0', '1')
+    </update>
+
+    <select id="selectMyRegistrations" resultMap="RegistrationResultMap">
+        SELECT
+            e.id,
+            e.activity_id,
+            e.user_id,
+            CAST(e.enroll_status AS UNSIGNED) AS status,
+            e.enroll_time AS register_time,
+            s.sign_in_time AS check_in_time,
+            s.sign_out_time AS check_out_time,
+            COALESCE(s.service_hour_actual, 0) AS hours,
+            COALESCE(e.audit_remark, e.enroll_remark) AS remark,
+            u.nickname AS user_name,
+            u.phone AS user_phone,
+            a.title AS activity_title,
+            a.address AS activity_location
+        FROM volunteer_activity_enrollment e
+                 LEFT JOIN volunteer_user u ON e.user_id = u.id
+                 LEFT JOIN volunteer_activity a ON e.activity_id = a.id
+                 LEFT JOIN volunteer_activity_sign s ON s.activity_enrollment_id = e.id
+        WHERE e.user_id = #{userId}
+        ORDER BY e.enroll_time DESC
+    </select>
+
+    <!-- ==================== 时长管理：使用 volunteer_service_hour_change 和 volunteer_service_hour_summary ==================== -->
+
+    <!-- 插入时长变更明细 -->
+    <insert id="insertServiceHourChange">
+        INSERT INTO volunteer_service_hour_change (
+            user_id,
+            activity_id,
+            activity_sign_id,
+            change_type,
+            change_source,
+            change_hour,
+            change_reason,
+            operate_user_id,
+            create_time,
+            update_time
+        )
+        VALUES (
+            #{userId},
+            #{activityId},
+            #{activitySignId},
+            #{changeType},
+            #{changeSource},
+            #{changeHour},
+            #{changeReason},
+            #{operateUserId},
+            NOW(),
+            NOW()
+        )
+    </insert>
+
+    <!-- 查询用户的时长汇总记录 -->
+    <select id="selectServiceHourSummaryByUserId" resultType="com.volunteerstar.pojo.ServiceHourSummary">
+        SELECT
+            id,
+            user_id AS userId,
+            total_service_hour AS totalServiceHour,
+            total_activity_count AS totalActivityCount,
+            ranking_no AS rankingNo,
+            last_calculate_time AS lastCalculateTime,
+            create_time AS createTime,
+            update_time AS updateTime
+        FROM volunteer_service_hour_summary
+        WHERE user_id = #{userId}
+    </select>
+
+    <!-- 查询用户本月志愿时长 -->
+    <select id="selectMonthServiceHourByUserId" resultType="java.math.BigDecimal">
+        SELECT COALESCE(SUM(change_hour), 0)
+        FROM volunteer_service_hour_change
+        WHERE user_id = #{userId}
+          AND DATE_FORMAT(create_time, '%Y-%m') = DATE_FORMAT(NOW(), '%Y-%m')
+    </select>
+
+    <!-- 插入时长汇总记录（用户首次获得时长时） -->
+    <insert id="insertServiceHourSummary">
+        INSERT INTO volunteer_service_hour_summary (
+            user_id,
+            total_service_hour,
+            total_activity_count,
+            last_calculate_time,
+            create_time,
+            update_time
+        )
+        VALUES (
+            #{userId},
+            #{totalHour},
+            #{activityCount},
+            NOW(),
+            NOW(),
+            NOW()
+        )
+    </insert>
+
+    <!-- 更新时长汇总记录 -->
+    <update id="updateServiceHourSummary">
+        UPDATE volunteer_service_hour_summary
+        SET total_service_hour = total_service_hour + #{deltaHour},
+            total_activity_count = total_activity_count + #{deltaCount},
+            last_calculate_time = NOW(),
+            update_time = NOW()
+        WHERE user_id = #{userId}
+    </update>
+
+    <!-- 查询用户的时长明细列表 -->
+    <select id="selectServiceHourChangesByUserId" resultType="com.volunteerstar.pojo.ServiceHourChange">
+        SELECT
+            c.id,
+            c.user_id AS userId,
+            c.activity_id AS activityId,
+            c.activity_sign_id AS activitySignId,
+            c.change_type AS changeType,
+            c.change_source AS changeSource,
+            c.change_hour AS changeHour,
+            c.change_reason AS changeReason,
+            c.operate_user_id AS operateUserId,
+            c.create_time AS createTime,
+            c.update_time AS updateTime,
+            a.title AS activityTitle,
+            u.nickname AS userName
+        FROM volunteer_service_hour_change c
+        LEFT JOIN volunteer_activity a ON c.activity_id = a.id
+        LEFT JOIN volunteer_user u ON c.user_id = u.id
+        WHERE c.user_id = #{userId}
+        ORDER BY c.create_time DESC
+    </select>
+
+</mapper>

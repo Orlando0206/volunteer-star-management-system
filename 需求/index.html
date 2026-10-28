@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>志愿星河 — 陈氏 E-R 图</title>
+<style>
+:root{--bg:#FAFBFC;--ink:#1E293B;--muted:#64748B;--accent:#7C3AED;--rule:#E2E8F0}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei',sans-serif;background:var(--bg);color:var(--ink);line-height:1.6}
+header{background:linear-gradient(135deg,#080612,#1A1030);color:#fff;padding:44px 24px 32px;text-align:center}
+header h1{font-size:1.8rem;margin-bottom:6px}
+header p{color:#A78BFA;font-size:.92rem}
+div.cards{max-width:1100px;margin:0 auto;padding:20px;display:flex;flex-direction:column;gap:24px}
+figure{background:#fff;border:1px solid var(--rule);border-radius:10px;padding:20px;margin:0}
+figure figcaption{font-size:1.1rem;font-weight:700;color:var(--accent);margin-bottom:4px}
+figure .sub{font-size:.85rem;color:var(--muted);margin-bottom:14px}
+figure img{width:100%;height:auto;border-radius:4px}
+.note{background:#FFFBEB;border:1px solid #FDE68A;border-radius:8px;padding:16px 20px;max-width:1100px;margin:0 auto 20px}
+.note h3{font-size:.9rem;color:#92400E;margin-bottom:6px}
+.note .row{display:flex;gap:28px;flex-wrap:wrap;font-size:.82rem;color:#78350F}
+.note span{font-weight:600}
+footer{text-align:center;padding:32px;color:var(--muted);font-size:.82rem}
+</style>
+</head>
+<body>
+<header>
+<h1>志愿星河 — 陈氏 E-R 图（Chen's Notation）</h1>
+<p>实体=矩形 · 属性=椭圆 · 关系=菱形 · 基数标注于连线</p>
+</header>
+<div class="cards">
+
+<figure>
+<figcaption>图一：核心业务域 — 用户·区域·组织·活动·报名·签到（7张表）</figcaption>
+<div class="sub">志愿者属于某区域 → 组织发布活动 → 用户报名 → 管理员审核 → 签到签退</div>
+<img src="01-core.svg" alt="核心业务ER图">
+</figure>
+
+<figure>
+<figcaption>图二：服务时长域 — 时长汇总·时长明细</figcaption>
+<div class="sub">签退时自动写入变更明细 → 更新汇总 → 刷新排名 → 个人中心实时展示</div>
+<img src="02-hours.svg" alt="服务时长ER图">
+</figure>
+
+<figure>
+<figcaption>图三：全景总览 — 核心12表完整关系一览</figcaption>
+<div class="sub">全部核心表按颜色区分：蓝=用户 · 青=区域组织 · 绿=活动 · 金=报名 · 紫=签到时长 · 粉=明细 · 灰=统计快照</div>
+<img src="03-overview.svg" alt="全景总览ER图">
+</figure>
+
+<figure>
+<figcaption>图四：辅助功能域 — 标签·收藏·消息·徽章·日志（11张辅助表）</figcaption>
+<div class="sub">活动多标签分类(M:N) · 用户收藏/分享 · 消息通知 · 徽章激励 · 操作审计日志</div>
+<img src="04-aux.svg" alt="辅助功能ER图">
+</figure>
+
+</div>
+
+<div class="note">
+<h3>📐 图例说明（陈氏表示法 Chen's Notation）</h3>
+<div class="row">
+<div><span>▢ 矩形</span> = 实体 (Entity)</div>
+<div><span>◯ 椭圆</span> = 属性 (Attribute)，下划线=主键</div>
+<div><span>◇ 菱形</span> = 关系 (Relationship)</div>
+<div><span>—— 连线</span> = 关联，标注1/N/M表示基数</div>
+</div>
+</div>
+
+<footer>志愿星河团队 · 2026 · 期末答辩用 · Graphviz 自动布局渲染</footer>
+</body>
+</html>
